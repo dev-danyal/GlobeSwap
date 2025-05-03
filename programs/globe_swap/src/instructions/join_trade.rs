@@ -75,14 +75,18 @@ use anchor_spl::{
     token_interface::{transfer_checked, Mint, TokenAccount, TokenInterface, TransferChecked},
 };
 
-use crate::state::Escrow;
+use crate::{state::Escrow, error::ErrorCode};
 
 #[derive(Accounts)]
 pub struct JoinTrade<'info> {
     #[account(mut)]
     pub buyer: Signer<'info>,
 
-    #[account(mut)]
+    #[account(
+        mut,
+        seeds = [b"escrow", escrow.maker.as_ref(), escrow.seed.to_le_bytes().as_ref()],
+        bump = escrow.bump,
+    )]
     pub escrow: Account<'info, Escrow>,
 
     #[account(
@@ -106,10 +110,9 @@ pub struct JoinTrade<'info> {
     pub buyer_ata_b: InterfaceAccount<'info, TokenAccount>,
 
     #[account(
-        init_if_needed,
-        payer = buyer,
+        mut,
         associated_token::mint = mint_b,
-        associated_token::authority = escrow,
+        associated_token::authority = escrow.maker,
         associated_token::token_program = token_program
     )]
     pub maker_receive_ata: InterfaceAccount<'info, TokenAccount>,
@@ -123,8 +126,7 @@ pub struct JoinTrade<'info> {
     pub vault_a: InterfaceAccount<'info, TokenAccount>,
 
     #[account(
-        init_if_needed,
-        payer = buyer,
+        mut,
         associated_token::mint = mint_a,
         associated_token::authority = buyer,
         associated_token::token_program = token_program
@@ -138,7 +140,17 @@ pub struct JoinTrade<'info> {
 
 impl<'info> JoinTrade<'info> {
     pub fn execute_swap(&mut self) -> Result<()> {
-        let escrow = &self.escrow;
+        // Check if trade is already joined
+        require!(self.escrow.taker.is_none(), ErrorCode::AlreadyJoined);
+
+        // Get escrow data
+        let maker = self.escrow.maker;
+        let seed = self.escrow.seed;
+        let bump = self.escrow.bump;
+        let receive_amt = self.escrow.receive_amt;
+
+        // Set the taker
+        self.escrow.taker = Some(self.buyer.key());
 
         // 1. Buyer sends payment to Maker
         let cpi_ctx_b_to_maker = CpiContext::new(
@@ -152,16 +164,15 @@ impl<'info> JoinTrade<'info> {
         );
         transfer_checked(
             cpi_ctx_b_to_maker,
-            escrow.receive_amt,
+            receive_amt,
             self.mint_b.decimals,
         )?;
 
         // 2. Escrow sends asset to Buyer
-        let bump = escrow.bump;
         let escrow_seeds = &[
             b"escrow",
-            escrow.maker.as_ref(),
-            &escrow.seed.to_le_bytes(),
+            maker.as_ref(),
+            &seed.to_le_bytes(),
             &[bump],
         ];
         let signer_seeds = &[&escrow_seeds[..]];
@@ -181,10 +192,6 @@ impl<'info> JoinTrade<'info> {
             self.vault_a.amount,
             self.mint_a.decimals,
         )?;
-
-        // 3. Close escrow account and refund rent to maker
-        let maker = self.buyer.to_account_info();
-        self.escrow.close(maker)?;
 
         Ok(())
     }

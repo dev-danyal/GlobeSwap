@@ -1,26 +1,8 @@
-// import * as anchor from "@coral-xyz/anchor";
-// import { Program } from "@coral-xyz/anchor";
-// import { GlobeSwap } from "../target/types/globe_swap";
-
-// describe("globe_swap", () => {
-//   // Configure the client to use the local cluster.
-//   anchor.setProvider(anchor.AnchorProvider.env());
-
-//   const program = anchor.workspace.globeSwap as Program<GlobeSwap>;
-
-//   it("Is initialized!", async () => {
-//     // Add your test here.
-//     const tx = await program.methods.initialize().rpc();
-//     console.log("Your transaction signature", tx);
-//   });
-// });
-
-
 import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { assert } from "chai";
 import { PublicKey } from "@solana/web3.js";
-import { createMint, getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
+import { createMint, getOrCreateAssociatedTokenAccount, mintTo, getAssociatedTokenAddress } from "@solana/spl-token";
 import { GlobeSwap } from "../target/types/globe_swap";
 
 const provider = anchor.AnchorProvider.env();
@@ -61,14 +43,6 @@ describe("GlobeSwap", () => {
     mintA = await createMint(provider.connection, provider.wallet.payer, seller, null, 0);
     mintB = await createMint(provider.connection, provider.wallet.payer, buyer.publicKey, null, 0);
 
-    // Create token accounts
-    sellerAta = (await getOrCreateAssociatedTokenAccount(provider.connection, provider.wallet.payer, mintA, seller)).address;
-    buyerAtaB = (await getOrCreateAssociatedTokenAccount(provider.connection, buyer, mintB, buyer.publicKey)).address;
-
-    // Mint tokens
-    await mintTo(provider.connection, provider.wallet.payer, mintA, sellerAta, seller, 100);
-    await mintTo(provider.connection, provider.wallet.payer, mintB, buyerAtaB, buyer, 100);
-
     // Derive PDAs
     [escrow, escrowBump] = await PublicKey.findProgramAddressSync([
       Buffer.from("escrow"),
@@ -76,23 +50,22 @@ describe("GlobeSwap", () => {
       seed.toArrayLike(Buffer, "le", 8)
     ], program.programId);
 
-    [vaultA, vaultABump] = await PublicKey.findProgramAddressSync([
-      escrow.toBuffer(),
-      (await anchor.utils.token.TOKEN_PROGRAM_ID).toBuffer(),
-      mintA.toBuffer()
-    ], program.programId);
+    // Get token accounts
+    sellerAta = await getAssociatedTokenAddress(mintA, seller);
+    buyerAtaB = await getAssociatedTokenAddress(mintB, buyer.publicKey);
+    makerReceiveAta = await getAssociatedTokenAddress(mintB, seller);
+    buyerReceiveAta = await getAssociatedTokenAddress(mintA, buyer.publicKey);
+    vaultA = await getAssociatedTokenAddress(mintA, escrow, true);
 
-    [makerReceiveAta] = await PublicKey.findProgramAddressSync([
-      escrow.toBuffer(),
-      (await anchor.utils.token.TOKEN_PROGRAM_ID).toBuffer(),
-      mintB.toBuffer()
-    ], program.programId);
+    // Create and fund token accounts
+    await getOrCreateAssociatedTokenAccount(provider.connection, provider.wallet.payer, mintA, seller);
+    await getOrCreateAssociatedTokenAccount(provider.connection, buyer, mintB, buyer.publicKey);
+    await getOrCreateAssociatedTokenAccount(provider.connection, provider.wallet.payer, mintB, seller);
+    await getOrCreateAssociatedTokenAccount(provider.connection, buyer, mintA, buyer.publicKey);
 
-    [buyerReceiveAta] = await PublicKey.findProgramAddressSync([
-      buyer.publicKey.toBuffer(),
-      (await anchor.utils.token.TOKEN_PROGRAM_ID).toBuffer(),
-      mintA.toBuffer()
-    ], program.programId);
+    // Mint tokens
+    await mintTo(provider.connection, provider.wallet.payer, mintA, sellerAta, seller, 100);
+    await mintTo(provider.connection, provider.wallet.payer, mintB, buyerAtaB, buyer, 100);
   });
 
   it("Initializes trade", async () => {

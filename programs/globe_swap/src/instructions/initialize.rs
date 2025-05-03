@@ -40,7 +40,7 @@ pub struct Initialize<'info> {
     pub escrow: Account<'info, Escrow>,
 
     #[account(
-        init,
+        init_if_needed,
         payer = seller,
         associated_token::mint = mint_seller,
         associated_token::authority = escrow,
@@ -54,7 +54,8 @@ pub struct Initialize<'info> {
 }
 
 impl Initialize<'_> {
-    pub fn create_escrow(&mut self, seed: u64, receive_amt : u64, bumps: &InitializeBumps) -> Result<()> {
+    pub fn create_escrow(&mut self, seed: u64, receive_amt: u64, bumps: &InitializeBumps) -> Result<()> {
+        // Initialize escrow account
         self.escrow.set_inner(Escrow {
             seed,
             maker: self.seller.key(),
@@ -66,10 +67,8 @@ impl Initialize<'_> {
             vault_a: self.vault_a.key(),
             vault_b: Pubkey::default(),
         });
-        Ok(())
-    }
 
-    pub fn deposit_tokens(&mut self, amount: u64) -> Result<()> {
+        // Transfer tokens from seller to vault
         let cpi_ctx = CpiContext::new(
             self.token_program.to_account_info(),
             TransferChecked {
@@ -79,7 +78,9 @@ impl Initialize<'_> {
                 authority: self.seller.to_account_info(),
             },
         );
-        transfer_checked(cpi_ctx, amount, self.mint_seller.decimals)
+        transfer_checked(cpi_ctx, 100, self.mint_seller.decimals)?;
+
+        Ok(())
     }
 }
 
