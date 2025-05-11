@@ -21,7 +21,6 @@ describe("GlobeSwap", () => {
   let buyerAtaB: PublicKey;
 
   let vaultA: PublicKey;
-  let vaultABump: number;
 
   let makerReceiveAta: PublicKey;
   let buyerReceiveAta: PublicKey;
@@ -69,7 +68,7 @@ describe("GlobeSwap", () => {
   });
 
   it("Initializes trade", async () => {
-    await program.methods.initializeTrade(seed, receiveAmt).accounts({
+    const tx = await program.methods.initializeTrade(seed, receiveAmt).accounts({
       seller,
       mintSeller: mintA,
       mintBuyer: mintB,
@@ -80,10 +79,11 @@ describe("GlobeSwap", () => {
       tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
       systemProgram: anchor.web3.SystemProgram.programId
     }).rpc();
+    console.log("InitializeTrade tx:", tx);
   });
 
   it("Joins trade", async () => {
-    await program.methods.joinTrade().accounts({
+    const tx = await program.methods.joinTrade().accounts({
       buyer: buyer.publicKey,
       escrow,
       mintB,
@@ -96,6 +96,7 @@ describe("GlobeSwap", () => {
       tokenProgram: anchor.utils.token.TOKEN_PROGRAM_ID,
       systemProgram: anchor.web3.SystemProgram.programId
     }).signers([buyer]).rpc();
+    console.log("JoinTrade tx:", tx);
   });
 
   it("Checks vault and receiver balances", async () => {

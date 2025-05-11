@@ -9,7 +9,7 @@ pub use constants::*;
 pub use instructions::*;
 pub use state::*;
 
-declare_id!("5tE9oA4cuvPBmmVWpS8a4bKTWQZeHyoJy8nHEoxwvHc");
+declare_id!("GJ367474om1WtodwMuBwrGUQU1cDRijy31ioH3XJMepx");
 
 #[program]
 pub mod globe_swap {
