@@ -89,7 +89,7 @@ describe("GlobeSwap", () => {
       mintB,
       mintA,
       buyerAtaB,
-      makerReceiveAta,
+      makerReceiveAta, 
       vaultA,
       buyerReceiveAta,
       associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,

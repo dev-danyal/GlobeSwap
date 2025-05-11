@@ -15,13 +15,5 @@ pub struct Escrow {
 
 impl Escrow {
     pub const INIT_SPACE: usize = 8 + // discriminator
-        8 + // seed
-        32 + // maker
-        (1 + 32) + // taker (Option<Pubkey>)
-        32 + // mint_a
-        32 + // mint_b
-        32 + // vault_a
-        32 + // vault_b
-        8 + // receive_amt
-        1; // bump
+        8 +  32 + (1 + 32) + 32 + 32 + 32 + 32 + 8 + 1; 
 }
