@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  padding-top: 64px; /* Adjust if your navbar is taller/shorter */
+}
+
+
+/* Navbar Styles */
+.luxury-navbar {
+  @apply flex items-center justify-between p-4 bg-[#0F0F2D] border-b border-[#9945FF]/20;
+  backdrop-filter: blur(10px);
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 50;
+}
+
+.navbar-logo {
+  @apply text-transparent bg-clip-text bg-gradient-to-r from-[#9945FF] to-[#14F195];
+}
+
+.navbar-links {
+  @apply flex gap-6 items-center;
+}
+
+.nav-link {
+  @apply px-3 py-2 rounded-lg transition-all;
+  @apply hover:bg-[#9945FF]/10 hover:text-[#9945FF];
+}
+
+.nav-link.active {
+  @apply bg-[#9945FF]/20 text-[#9945FF] font-medium;
+}
+
+.navbar-wallet {
+  @apply flex items-center gap-4;
+}
+
+/* Wallet button overrides */
+.wallet-adapter-button {
+  @apply !font-medium !text-sm !h-auto !px-4 !py-2;
+}
