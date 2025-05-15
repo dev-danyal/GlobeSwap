@@ -52,7 +52,7 @@ pub struct JoinTrade<'info> {
         associated_token::authority = escrow,
         associated_token::token_program = token_program
     )]
-    pub vault_a: InterfaceAccount<'info, TokenAccount>,
+    pub vault: InterfaceAccount<'info, TokenAccount>,
 
     #[account(
         mut,
@@ -81,7 +81,7 @@ impl<'info> JoinTrade<'info> {
         // Set the taker
         self.escrow.taker = Some(self.buyer.key());
 
-        // 1. Buyer sends payment to Maker
+        // 1. Buyer sends payment to Maker (TokenB from buyer to seller)
         let cpi_ctx_b_to_maker = CpiContext::new(
             self.token_program.to_account_info(),
             TransferChecked {
@@ -97,7 +97,7 @@ impl<'info> JoinTrade<'info> {
             self.mint_b.decimals,
         )?;
 
-        // 2. Escrow sends asset to Buyer
+        // 2. Escrow sends asset to Buyer (TokenA from vault to buyer)
         let escrow_seeds = &[
             b"escrow",
             maker.as_ref(),
@@ -109,7 +109,7 @@ impl<'info> JoinTrade<'info> {
         let cpi_ctx_a_to_buyer = CpiContext::new_with_signer(
             self.token_program.to_account_info(),
             TransferChecked {
-                from: self.vault_a.to_account_info(),
+                from: self.vault.to_account_info(),
                 mint: self.mint_a.to_account_info(),
                 to: self.buyer_receive_ata.to_account_info(),
                 authority: self.escrow.to_account_info(),
@@ -118,7 +118,7 @@ impl<'info> JoinTrade<'info> {
         );
         transfer_checked(
             cpi_ctx_a_to_buyer,
-            self.vault_a.amount,
+            self.vault.amount,
             self.mint_a.decimals,
         )?;
 

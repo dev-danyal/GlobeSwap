@@ -46,7 +46,7 @@ pub struct Initialize<'info> {
         associated_token::authority = escrow,
         associated_token::token_program = token_program
     )]
-    pub vault_a: InterfaceAccount<'info, TokenAccount>,
+    pub vault: InterfaceAccount<'info, TokenAccount>,
 
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Interface<'info, TokenInterface>,
@@ -64,8 +64,7 @@ impl Initialize<'_> {
             mint_b: self.mint_buyer.key(),
             receive_amt,
             bump: bumps.escrow,
-            vault_a: self.vault_a.key(),
-            vault_b: Pubkey::default(),
+            vault: self.vault.key(),
         });
 
         // Transfer tokens from seller to vault
@@ -74,7 +73,7 @@ impl Initialize<'_> {
             TransferChecked {
                 from: self.seller_ata.to_account_info(),
                 mint: self.mint_seller.to_account_info(),
-                to: self.vault_a.to_account_info(),
+                to: self.vault.to_account_info(),
                 authority: self.seller.to_account_info(),
             },
         );
